@@ -1,0 +1,13 @@
+{
+  "route": "/ask",
+  "viewport": {"width": 390, "height": 844},
+  "fixture": "Uncle Lin fictional demo",
+  "steps": ["Open /ask", "Click 上次医生说了什么？", "Scroll to the bottom", "Click 我有哪些老毛病和在吃的药？"],
+  "buttonRect": {"x": 17, "y": 604.3125, "width": 257, "height": 51},
+  "centerHit": "textarea[aria-label=问医伴]",
+  "scrollY": 188,
+  "scrollHeight": 1032,
+  "mainPaddingBottom": "110.5px",
+  "spacerHeight": "78.5px",
+  "result": "Normal Chromium click blocked by fixed composer and bottom navigation; reproduced twice."
+}
