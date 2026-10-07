@@ -195,4 +195,4 @@ The current release is in [VERSION](VERSION), in the format `YYYY-MM-DD-HH.mm` (
 
 ## Team
 
-**Tri Team**: Joanna (product lead), Ronnie, Nancy, Robin and Lucas (engineers).
+**Tri Team**: Joanna (team lead & product lead), Ronnie, Nancy, Robin and Lucas (engineers).
