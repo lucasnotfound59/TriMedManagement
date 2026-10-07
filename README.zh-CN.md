@@ -1,6 +1,6 @@
 <div align="center">
 
-# VisitSmoothie（医伴）
+# VisitSmoothie（门诊奶昔）
 
 **一个陪你看门诊的 AI 助手。**
 **看病前，帮你把病情说清楚；看病后，帮你把医嘱照着做。**
