@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronRight, Languages, Settings } from "lucide-react";
+import { ChevronRight, KeyRound, Languages, Settings } from "lucide-react";
 import { reloadAccount, useStore } from "@/lib/store";
 import { logoutHere } from "@/lib/accounts";
 import { ageOf, cn } from "@/lib/utils";
@@ -59,6 +59,7 @@ export default function SetPage() {
 
       <Card tone="raised" className="rise-1 overflow-hidden">
         <RowLink href="/me/settings" title={L("设置", "Settings")} icon={<Settings />} iconTone="neutral" className="press" />
+        <RowLink href="/me/settings#ai-key" title={L("智能助手密钥", "AI API key")} icon={<KeyRound />} className="border-t border-line" />
         {/* the language: a settings row of its own, the two choices side by side at the end of it */}
         <div className="flex min-h-14 items-center gap-3 border-t border-line px-4 py-2">
           <IconTile tone="neutral">

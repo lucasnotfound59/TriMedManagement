@@ -1,3 +1,4 @@
+import { withAiCredentials } from "@/lib/server/ai-context";
 import { NextResponse } from "next/server";
 import { setLang } from "@/lib/lang";
 import type { SummaryRequest, SummaryResponse } from "@/lib/types";
@@ -9,7 +10,7 @@ import { fallbackSummary } from "@/lib/ai/fallback";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   let body: SummaryRequest;
   try {
     body = (await req.json()) as SummaryRequest;
@@ -35,3 +36,5 @@ export async function POST(req: Request) {
     return NextResponse.json({ ...fallbackSummary(body), error: String(err) });
   }
 }
+
+export const POST = withAiCredentials(handlePOST);

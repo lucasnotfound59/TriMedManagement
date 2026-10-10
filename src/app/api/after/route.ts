@@ -1,3 +1,4 @@
+import { withAiCredentials } from "@/lib/server/ai-context";
 import { NextResponse } from "next/server";
 import { setLang } from "@/lib/lang";
 import type { AfterRequest, AfterResponse } from "@/lib/types";
@@ -13,7 +14,7 @@ const MAX_IMAGES = 6;
 const MAX_IMAGE_CHARS = 4_000_000;
 
 /** "看完医生了": organises what the doctor said, from the user's words or from photos. */
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   let body: AfterRequest;
   try {
     body = (await req.json()) as AfterRequest;
@@ -63,3 +64,5 @@ export async function POST(req: Request) {
     return NextResponse.json({ ...fallbackAfter(request), error: String(err) });
   }
 }
+
+export const POST = withAiCredentials(handlePOST);

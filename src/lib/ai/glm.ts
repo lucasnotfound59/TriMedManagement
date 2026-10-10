@@ -6,6 +6,7 @@
  */
 
 import Anthropic from "@anthropic-ai/sdk";
+import { aiCredentialsContext, aiKey } from "../server/ai-context";
 import { ENGLISH_OUTPUT, getLang } from "../lang";
 
 export interface GlmMessage {
@@ -17,15 +18,15 @@ const has = (v: string | undefined) => Boolean(v && v.trim());
 
 /** Which provider answers chat and reads photos. */
 export function aiProvider(): "glm" | "claude" {
+  const saved = aiCredentialsContext.getStore();
+  if (saved) return saved.provider;
   const set = process.env.AI_PROVIDER?.trim().toLowerCase();
   if (set === "glm" || set === "claude") return set;
-  return has(process.env.ANTHROPIC_API_KEY) ? "claude" : "glm";
+  return has(aiKey("claude")) ? "claude" : "glm";
 }
 
-let client: Anthropic | null = null;
 function anthropic() {
-  client ??= new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, maxRetries: 1 });
-  return client;
+  return new Anthropic({ apiKey: aiKey("claude"), maxRetries: 1 });
 }
 
 function glmBaseUrl() {
@@ -45,7 +46,7 @@ export function glmModel() {
 }
 
 export function glmConfigured() {
-  return aiProvider() === "glm" ? has(process.env.GLM_API_KEY) : has(process.env.ANTHROPIC_API_KEY);
+  return aiProvider() === "glm" ? has(aiKey("glm")) : has(aiKey("claude"));
 }
 
 /** The model answered, but not in JSON. `content` is what it said. */
@@ -85,7 +86,11 @@ async function claudeText(system: string, messages: Anthropic.Beta.BetaMessagePa
       messages,
     },
     { timeout: timeoutMs },
-  );
+  ).catch((err: unknown) => {
+    // Provider errors can contain request details. Keep credentials out of callers and logs.
+    const status = err instanceof Anthropic.APIError ? err.status : undefined;
+    throw new Error(status ? `Claude ${status}` : "Claude connection failed");
+  });
   if (res.stop_reason === "refusal") throw new Error(`Claude 拒绝回答: ${res.stop_details?.category ?? ""}`);
   const content = res.content
     .filter((b): b is Anthropic.Beta.BetaTextBlock => b.type === "text")
@@ -98,7 +103,7 @@ async function claudeText(system: string, messages: Anthropic.Beta.BetaMessagePa
 
 /** One request to GLM's chat endpoint (also used for photos, with the vision model), returning its text. */
 async function glmText(body: Record<string, unknown>, timeoutMs: number, what = "GLM"): Promise<string> {
-  const key = process.env.GLM_API_KEY;
+  const key = aiKey("glm");
   if (!key) throw new Error("GLM_API_KEY 未配置");
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);
@@ -109,7 +114,7 @@ async function glmText(body: Record<string, unknown>, timeoutMs: number, what = 
       body: JSON.stringify({ thinking: { type: "disabled" }, ...body }),
       signal: ctrl.signal,
     });
-    if (!res.ok) throw new Error(`${what} ${res.status}: ${(await res.text()).slice(0, 300)}`);
+    if (!res.ok) throw new Error(`${what} ${res.status}`);
     const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
     const content = data?.choices?.[0]?.message?.content ?? "";
     if (!content) throw new Error(`${what} 返回为空`);
@@ -175,7 +180,7 @@ export async function glmPing(): Promise<{ ok: boolean; latencyMs: number; error
     );
     return { ok: true, latencyMs: Date.now() - start };
   } catch (err) {
-    return { ok: false, latencyMs: Date.now() - start, error: String(err) };
+    return { ok: false, latencyMs: Date.now() - start, error: err instanceof Error && /\b(401|403|429)\b/.test(err.message) ? "provider_rejected" : "connection_failed" };
   }
 }
 
@@ -223,12 +228,12 @@ export async function glmVisionJSON<T>(prompt: string, images: string[], opts: {
 }
 
 export function glmAsrConfigured() {
-  return has(process.env.GLM_API_KEY);
+  return has(aiKey("glm"));
 }
 
 /** Speech to text (Zhipu GLM). The service accepts WAV or MP3, at most 30 seconds per request. */
 export async function glmTranscribe(file: Blob, filename = "speech.wav"): Promise<string> {
-  const key = process.env.GLM_API_KEY;
+  const key = aiKey("glm");
   if (!key) throw new Error("GLM_API_KEY 未配置");
   const form = new FormData();
   form.append("model", glmAsrModel());
@@ -243,7 +248,7 @@ export async function glmTranscribe(file: Blob, filename = "speech.wav"): Promis
       body: form,
       signal: ctrl.signal,
     });
-    if (!res.ok) throw new Error(`GLM asr ${res.status}: ${(await res.text()).slice(0, 300)}`);
+    if (!res.ok) throw new Error(`GLM asr ${res.status}`);
     const data = (await res.json()) as { text?: string };
     return (data.text ?? "").trim();
   } finally {

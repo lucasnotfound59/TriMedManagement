@@ -283,7 +283,10 @@ export function logoutHere() {
 }
 
 /** Opens a demo person's account, creating it the first time. 演示数据不进服务器。 */
-export function enterDemo(persona: "lin") {
+export async function enterDemo(persona: "lin") {
+  // Finish server sign-out first: a demo must never use or replace a real account's AI key.
+  const res = await fetch("/api/auth/logout", { method: "POST" });
+  if (!res.ok) throw new Error("demo_logout_failed");
   const d = DEMO_ACCOUNTS[persona];
   const list = listAccounts();
   if (!list.some((a) => a.id === d.id)) {

@@ -92,7 +92,7 @@ Open http://localhost:3000, or http://localhost:3000/demo/lin for the demo patie
 
 ### API keys are not included
 
-**This repository contains no API keys.** Before running any version, add your own keys to `.env.local`. That file is git-ignored and must never be committed.
+**This repository contains no API keys.** On current `main`, the first-use guide requires saving your own provider key. To replace it later, open **Settings → AI API key**. Keys are encrypted per account on the server, never displayed again, and excluded from profile backups. Archived versions and optional server defaults use `.env.local`; that file is git-ignored and must never be committed.
 
 | Variable | What to put |
 |---|---|
@@ -151,7 +151,7 @@ Without a key the app still runs. Conversations fall back to built-in rules, and
 | `CLAUDE_MODEL` | Model for `claude` | `claude-opus-5-5` |
 | `DATA_ENCRYPTION_KEY` | Master key for patient data. Generated on first run. If it is lost, existing data cannot be decrypted. | generated |
 
-Keys are read only by the server routes under `/api` and never reach the browser.
+Saved account keys override the server defaults above without a restart. A saved Zhipu key supports chat, photos and speech; a saved Anthropic key supports chat/photos and uses browser dictation when available. Accounts without a saved key, and demo/registration requests, retain the environment defaults. Keys are entered through a password field, sent to the server to be encrypted, and never returned by status/data responses. Saving and testing the connection are separate actions; provider charges may apply.
 
 ### Accounts and storage
 

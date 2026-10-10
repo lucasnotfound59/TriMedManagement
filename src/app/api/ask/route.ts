@@ -1,3 +1,4 @@
+import { withAiCredentials } from "@/lib/server/ai-context";
 import { NextResponse } from "next/server";
 import { setLang } from "@/lib/lang";
 import type { AskRecord, AskRequest, AskResponse, Profile } from "@/lib/types";
@@ -48,7 +49,7 @@ function cleanRecord(r: AskRecord): AskRecord {
 }
 
 /** 问医伴: a question about the person's own health, answered from their records. */
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   let body: AskRequest;
   try {
     body = (await req.json()) as AskRequest;
@@ -99,3 +100,5 @@ export async function POST(req: Request) {
     return NextResponse.json({ ...fallbackAsk(request), error: String(err) });
   }
 }
+
+export const POST = withAiCredentials(handlePOST);
