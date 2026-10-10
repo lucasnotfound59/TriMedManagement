@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { SearchX } from "lucide-react";
 import { reloadAccount, useStore, type DemoPersona } from "@/lib/store";
@@ -24,14 +24,16 @@ export default function DemoLinkPage() {
   const router = useRouter();
   const persona = (params.persona in PERSONAS ? params.persona : null) as DemoPersona | null;
   const decided = useRef(false);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     if (!ready || decided.current || !persona) return;
     decided.current = true;
-    enterDemo(persona);
-    reloadAccount();
-    loadDemo(persona);
-    router.replace("/");
+    void enterDemo(persona).then(() => {
+      reloadAccount();
+      loadDemo(persona);
+      router.replace("/");
+    }).catch(() => setFailed(true));
   }, [ready, persona, loadDemo, router]);
 
   if (!persona) {
@@ -52,6 +54,13 @@ export default function DemoLinkPage() {
       </div>
     );
   }
+
+  if (failed) return (
+    <Card className="m-4 space-y-4 p-5">
+      <p role="alert">{L("未能安全退出当前账号，请返回首页后重试打开演示。", "Could not sign out safely. Return home and try opening the demo again.")}</p>
+      <LinkButton href="/">{L("返回首页", "Return home")}</LinkButton>
+    </Card>
+  );
 
   /* the demo is being opened: the app icon inside a turning ring, above the shape of the home page */
   return (

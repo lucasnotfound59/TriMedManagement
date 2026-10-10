@@ -1,3 +1,4 @@
+import { withAiCredentials } from "@/lib/server/ai-context";
 import { NextResponse } from "next/server";
 import { setLang } from "@/lib/lang";
 import type { ChatRequest, ChatResponse } from "@/lib/types";
@@ -26,7 +27,7 @@ async function ask(body: ChatRequest, avoid?: string): Promise<ChatResponse> {
   }
 }
 
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   let body: ChatRequest;
   try {
     body = (await req.json()) as ChatRequest;
@@ -58,3 +59,5 @@ export async function POST(req: Request) {
     return NextResponse.json({ ...fallbackChat(body), error: String(err) });
   }
 }
+
+export const POST = withAiCredentials(handlePOST);

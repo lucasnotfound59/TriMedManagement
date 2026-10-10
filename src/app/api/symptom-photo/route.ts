@@ -1,3 +1,4 @@
+import { withAiCredentials } from "@/lib/server/ai-context";
 import { NextResponse } from "next/server";
 import { glmConfigured, glmVisionJSON } from "@/lib/ai/glm";
 import { getLang, setLang } from "@/lib/lang";
@@ -38,7 +39,7 @@ function cleanDescription(raw: unknown): string {
   return en ? kept.join(", ").slice(0, MAX_LEN * 2) : kept.join("，").slice(0, MAX_LEN);
 }
 
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   let body: { images?: unknown; lang?: unknown };
   try {
     body = (await req.json()) as { images?: unknown; lang?: unknown };
@@ -61,3 +62,5 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: String(err), reason: "failed" }, { status: 502 });
   }
 }
+
+export const POST = withAiCredentials(handlePOST);

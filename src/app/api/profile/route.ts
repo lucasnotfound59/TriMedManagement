@@ -1,3 +1,4 @@
+import { withAiCredentials } from "@/lib/server/ai-context";
 import { NextResponse } from "next/server";
 import { setLang } from "@/lib/lang";
 import type { ProfileParseResponse } from "@/lib/types";
@@ -10,7 +11,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /** Splits one free sentence about history, allergies and medicines into profile fields. */
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   let text = "";
   try {
     const body = (await req.json()) as { text?: unknown; lang?: unknown };
@@ -30,3 +31,5 @@ export async function POST(req: Request) {
     return NextResponse.json({ ...fallbackProfile(text), error: String(err) });
   }
 }
+
+export const POST = withAiCredentials(handlePOST);

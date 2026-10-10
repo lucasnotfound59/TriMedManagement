@@ -1,3 +1,4 @@
+import { withAiCredentials } from "@/lib/server/ai-context";
 import { NextResponse } from "next/server";
 import { setLang } from "@/lib/lang";
 import type { AnnualRequest, AnnualResponse } from "@/lib/types";
@@ -9,7 +10,7 @@ import { fallbackAnnual } from "@/lib/ai/fallback";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   let body: AnnualRequest;
   try {
     body = (await req.json()) as AnnualRequest;
@@ -30,3 +31,5 @@ export async function POST(req: Request) {
     return NextResponse.json({ ...fallbackAnnual(body), error: String(err) });
   }
 }
+
+export const POST = withAiCredentials(handlePOST);

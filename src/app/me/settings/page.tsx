@@ -7,7 +7,8 @@ import { useStore } from "@/lib/store";
 import { aiHealth, type AiHealth } from "@/lib/ai/client";
 import { cn, fmtISODate } from "@/lib/utils";
 import { useToast } from "@/components/Toast";
-import { Button, Card, IconTile, LinkButton, Modal, PageHeader, SectionTitle, Select, Spinner, Toggle, type IconTone } from "@/components/ui";
+import { Button, Card, IconTile, LinkButton, Modal, PageHeader, SectionTitle, Select, Toggle, type IconTone } from "@/components/ui";
+import { AiKeyForm } from "@/components/AiKeyForm";
 import { L } from "@/lib/lang";
 
 type Perm = NotificationPermission | "unsupported";
@@ -64,7 +65,6 @@ export default function SettingsPage() {
   const toast = useToast();
   const [perm, setPerm] = useState<Perm>(() => (typeof Notification === "undefined" ? "unsupported" : Notification.permission));
   const [health, setHealth] = useState<AiHealth | null>(null);
-  const [pinging, setPinging] = useState(false);
   const [confirm, setConfirm] = useState<null | "reset">(null);
 
   useEffect(() => {
@@ -100,14 +100,6 @@ export default function SettingsPage() {
     }
   };
 
-  const ping = async () => {
-    setPinging(true);
-    const h = await aiHealth(true);
-    setHealth(h);
-    setPinging(false);
-    if (h.ok) toast.show(L(`连接正常，用了 ${((h.latencyMs ?? 0) / 1000).toFixed(1)} 秒`, `Connected in ${((h.latencyMs ?? 0) / 1000).toFixed(1)} s`), "good");
-    else toast.show(h.configured ? L("没连上，请检查密钥和网络", "Not connected. Check the Key and the network") : L("还没有配置密钥", "No API Key set up yet"), "danger");
-  };
 
   const download = () => {
     const blob = new Blob([exportJSON()], { type: "application/json" });
@@ -133,6 +125,20 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6 pb-2">
       <PageHeader back={{ href: "/me", label: L("我的档案", "My profile") }} title={L("设置", "Settings")} />
+
+      <section id="ai-key" className="scroll-mt-6">
+        <SectionTitle>{L("智能助手", "AI assistant")}</SectionTitle>
+        <Card className="overflow-hidden">
+          <Block
+            icon={<Sparkles />}
+            iconTone={aiTone}
+            title={L("智能助手密钥", "AI API key")}
+            mark={<span aria-hidden="true" className={cn("inline-block h-2.5 w-2.5 rounded-full", aiLight)} />}
+          >
+            <AiKeyForm allowTest onSaved={() => { void aiHealth().then(setHealth); }} />
+          </Block>
+        </Card>
+      </section>
 
       <section className="rise-1">
         <SectionTitle>{L("提醒", "Reminders")}</SectionTitle>
@@ -266,37 +272,7 @@ export default function SettingsPage() {
               "VisitSmoothie only helps you record, organize and remember. It does not diagnose or suggest medicines. Ranges for health numbers are general; your own targets come from your doctor. For emergencies like chest pain, trouble breathing, confusion or heavy bleeding, call 120 right away.",
             )}
           />
-          <Block
-            icon={<Sparkles />}
-            iconTone={aiTone}
-            title={L("智能助手连接", "AI connection")}
-            mark={<span aria-hidden="true" className={cn("inline-block h-2.5 w-2.5 rounded-full transition-all duration-300", aiLight, !health && "animate-breathe")} />}
-            detail={
-              !health ? (
-                <span className="inline-flex items-center gap-2.5">
-                  <Spinner className="h-5 w-5" />
-                  {L("正在检查…", "Checking…")}
-                </span>
-              ) : health.configured ? (
-                <>
-                  {/* the model names are English words: shown in English only */}
-                  {L("已连接智能助手，对话、认照片、听语音都能用", `Connected. Chat ${health.model}, photos ${health.visionModel}, voice ${health.speechModel}`)}
-                  {health.ok === true && health.latencyMs != null && L(`。刚才测试用了 ${(health.latencyMs / 1000).toFixed(1)} 秒`, `. The last test took ${(health.latencyMs / 1000).toFixed(1)} s`)}
-                  {health.ok === false && L("。刚才测试没连上，对话会先用内置规则顶上", ". The last test failed; built-in rules answer for now")}
-                  {L("。密钥和模型在项目根目录的本地配置文件里改。", ". Change the Key and model names in .env.local at the project root.")}
-                </>
-              ) : (
-                L(
-                  "还没有配置智能助手的密钥。现在用内置规则回答，不能听语音、认照片。把密钥填进项目根目录的本地配置文件，再重启就可以了。",
-                  "No AI Key set up yet. Built-in rules answer for now; voice and photos don't work. Put the Key in .env.local and restart.",
-                )
-              )
-            }
-          >
-            <Button variant="secondary" className="press" onClick={ping} loading={pinging}>
-              {L("测试连接", "Test connection")}
-            </Button>
-          </Block>
+
         </Card>
       </section>
 

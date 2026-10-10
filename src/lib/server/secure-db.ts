@@ -56,6 +56,11 @@ function getDb(): DatabaseSync {
       blob       TEXT NOT NULL,
       updated_at TEXT NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS ai_credentials (
+      account_id TEXT PRIMARY KEY REFERENCES accounts(id),
+      iv         TEXT NOT NULL,
+      blob       TEXT NOT NULL
+    );
     CREATE INDEX IF NOT EXISTS idx_sessions_account ON sessions(account_id);
   `);
   return db;
@@ -275,4 +280,27 @@ export function writePatientData(
   if (res.changes > 0) return { ok: true, version: baseVersion + 1 };
   const cur = readPatientData(accountId);
   return { ok: false, version: cur.version };
+}
+
+/* AI credentials live outside patient state: never included in data responses or backups. */
+export interface AiCredentials {
+  provider: "glm" | "claude";
+  apiKey: string;
+}
+
+export function accountByRequest(req: Request): ServerAccount | null {
+  const token = req.headers.get("cookie")?.match(new RegExp(`(?:^|;\\s*)${SESSION_COOKIE}=([^;]+)`))?.[1];
+  return accountBySession(token);
+}
+
+export function readAiCredentials(accountId: string): AiCredentials | null {
+  const row = getDb().prepare("SELECT iv, blob FROM ai_credentials WHERE account_id = ?").get(accountId) as
+    { iv: string; blob: string } | undefined;
+  return row ? JSON.parse(decryptText(row.iv, row.blob)) as AiCredentials : null;
+}
+
+export function writeAiCredentials(accountId: string, credentials: AiCredentials): void {
+  const { iv, blob } = encryptText(JSON.stringify(credentials));
+  getDb().prepare(`INSERT INTO ai_credentials (account_id, iv, blob) VALUES (?, ?, ?)
+    ON CONFLICT(account_id) DO UPDATE SET iv = excluded.iv, blob = excluded.blob`).run(accountId, iv, blob);
 }

@@ -1,3 +1,4 @@
+import { withAiCredentials } from "@/lib/server/ai-context";
 import { NextResponse } from "next/server";
 import { setLang } from "@/lib/lang";
 import type { AfterResult, Profile } from "@/lib/types";
@@ -10,7 +11,7 @@ export const dynamic = "force-dynamic";
 const list = (v: unknown) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : []);
 
 /** 医嘱 b: explains one part of the doctor's orders in plain words. */
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   let body: { profile?: Profile; result?: AfterResult; part?: string; history?: unknown; previous?: unknown; lang?: unknown };
   try {
     body = await req.json();
@@ -55,3 +56,5 @@ export async function POST(req: Request) {
     return NextResponse.json({ mode: "fallback", answer: fallbackExplain(result, part), error: String(err) });
   }
 }
+
+export const POST = withAiCredentials(handlePOST);

@@ -1,10 +1,11 @@
+import { withAiCredentials } from "@/lib/server/ai-context";
 import { NextResponse } from "next/server";
 import { glmAsrModel, glmConfigured, glmModel, glmPing, glmVisionModel } from "@/lib/ai/glm";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET(req: Request) {
+async function handleGET(req: Request) {
   const ping = new URL(req.url).searchParams.get("ping") === "1";
   const configured = glmConfigured();
   const model = glmModel();
@@ -13,3 +14,5 @@ export async function GET(req: Request) {
   const result = await glmPing();
   return NextResponse.json({ configured, model, ...extra, ...result });
 }
+
+export const GET = withAiCredentials(handleGET);

@@ -1,3 +1,4 @@
+import { withAiCredentials } from "@/lib/server/ai-context";
 import { NextResponse } from "next/server";
 import { setLang } from "@/lib/lang";
 import type { CheckupResponse } from "@/lib/types";
@@ -29,7 +30,7 @@ async function readPage(image: string, prompt: string): Promise<unknown | null> 
  * Each photo is read on its own and the pages are put together afterwards: a page copied by
  * itself comes out more accurately than six at once, and the pages are read side by side.
  */
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   let body: { images?: unknown; prompt?: unknown };
   try {
     body = (await req.json()) as { images?: unknown; prompt?: unknown };
@@ -60,3 +61,5 @@ export async function POST(req: Request) {
   const out: CheckupResponse = { mode: "glm", result };
   return NextResponse.json(debug ? { ...out, raw: answers } : out);
 }
+
+export const POST = withAiCredentials(handlePOST);

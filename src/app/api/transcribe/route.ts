@@ -1,3 +1,6 @@
+import { withAiCredentials } from "@/lib/server/ai-context";
+import { createHash } from "node:crypto";
+import { aiKey } from "@/lib/server/ai-context";
 import { NextResponse } from "next/server";
 import { glmAsrConfigured, glmTranscribe } from "@/lib/ai/glm";
 
@@ -27,15 +30,21 @@ function tinyClip(): Blob {
   return new Blob([buf], { type: "audio/wav" });
 }
 
-let checked: { ok: boolean; at: number } | null = null;
+const checks = new Map<string, { ok: boolean; at: number }>();
+const credentialId = () => createHash("sha256").update(aiKey("glm") ?? "").digest("hex");
+function rememberCheck(ok: boolean) {
+  if (checks.size > 100) checks.clear();
+  checks.set(credentialId(), { ok, at: Date.now() });
+}
 
 /**
  * Whether the speech service works, so the browser knows at the tap whether to listen by itself.
  * Only a refused key, no credit or no answer counts as not working: a complaint about the clip
  * itself means the key was accepted. Kept for ten minutes when it works, one minute when not.
  */
-export async function GET() {
+async function handleGET() {
   if (!glmAsrConfigured()) return NextResponse.json({ ok: false });
+  const checked = checks.get(credentialId());
   if (checked && Date.now() - checked.at < (checked.ok ? 600_000 : 60_000)) return NextResponse.json({ ok: checked.ok });
   let ok = true;
   try {
@@ -45,12 +54,12 @@ export async function GET() {
     ok = status === 400 || status === 422;
     if (!ok) console.error("[医伴] 语音识别不可用：", String(err).slice(0, 200));
   }
-  checked = { ok, at: Date.now() };
+  rememberCheck(ok);
   return NextResponse.json({ ok });
 }
 
 /** Speech to text for one short clip. The browser sends 16 kHz mono WAV, at most 30 seconds. */
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   if (!glmAsrConfigured()) return NextResponse.json({ error: "语音识别需要先配置 AI" }, { status: 503 });
   let file: File | null = null;
   try {
@@ -67,7 +76,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ text });
   } catch (err) {
     console.error("[医伴] 语音识别失败：", err);
-    if (/GLM asr (401|403|429)/.test(String(err))) checked = { ok: false, at: Date.now() };
-    return NextResponse.json({ error: String(err) }, { status: 502 });
+    if (/GLM asr (401|403|429)/.test(String(err))) rememberCheck(false);
+    return NextResponse.json({ error: "speech_unavailable" }, { status: 502 });
   }
 }
+
+export const GET = withAiCredentials(handleGET);
+
+export const POST = withAiCredentials(handlePOST);
